@@ -39,34 +39,21 @@ def ensure_network_volume(name, size_gb, data_center_id):
         print(f"Using existing network volume: {existing}")
         return existing
 
-    # Prefer the SDK if it exposes volume creation; otherwise fall back to GraphQL.
-    create_fn = getattr(runpod, "create_network_volume", None)
-    if callable(create_fn):
-        vol = create_fn(name=name, size=int(size_gb), data_center_id=data_center_id)
-        vol_id = vol["id"] if isinstance(vol, dict) else vol
-        print(f"Created network volume: {vol_id}")
-        return vol_id
-
-    # GraphQL fallback.
+    # The SDK (this version) lacks volume creation, so use the REST API v1.
     import requests
-    query = """
-    mutation {
-      saveNetworkVolume(input: {name: "%s", size: %d, dataCenterId: "%s"}) {
-        id
-      }
-    }
-    """ % (name, int(size_gb), data_center_id)
     resp = requests.post(
-        f"https://api.runpod.io/graphql?api_key={runpod.api_key}",
-        json={"query": query},
+        "https://rest.runpod.io/v1/networkvolumes",
+        headers={"Authorization": f"Bearer {runpod.api_key}",
+                 "Content-Type": "application/json"},
+        json={"name": name, "dataCenterId": data_center_id, "size": int(size_gb)},
         timeout=60,
     )
-    data = resp.json()
-    if "errors" in data:
-        sys.exit(f"Failed to create network volume via GraphQL: {data['errors']}\n"
-                 f"Create one in the RunPod dashboard and set RUNPOD_NETWORK_VOLUME_ID in .env.")
-    vol_id = data["data"]["saveNetworkVolume"]["id"]
-    print(f"Created network volume (GraphQL): {vol_id}")
+    if resp.status_code not in (200, 201):
+        sys.exit(f"Failed to create network volume ({resp.status_code}): {resp.text}\n"
+                 f"Create one in the RunPod dashboard (data center {data_center_id}) "
+                 f"and set RUNPOD_NETWORK_VOLUME_ID in .env.")
+    vol_id = resp.json().get("id")
+    print(f"Created network volume: {vol_id} ({size_gb}GB in {data_center_id})")
     return vol_id
 
 
