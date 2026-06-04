@@ -32,6 +32,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/.ghcup || true
+          df -h /
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -39,8 +44,10 @@ jobs:
           file: Dockerfile.runpod
           platforms: linux/amd64
           push: true
-          tags: |
-            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/fluxgym-runpod:latest
-            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/fluxgym-runpod:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Single tag, no gha cache: this image is ~10GB and mode=max cache
+          # export thrashes against GitHub's 10GB cache limit. Inline cache is
+          # cheap and lets later builds reuse layers from the registry.
+          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/fluxgym-runpod:latest
+          cache-from: type=registry,ref=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/fluxgym-runpod:latest
+          cache-to: type=inline
+          provenance: false
