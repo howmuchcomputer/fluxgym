@@ -12,24 +12,29 @@ RUN apt-get update -y && apt-get install -y \
 
 WORKDIR /app
 
+# Use uv for installs. Plain pip backtracks pathologically on these large
+# unpinned requirement sets (35min+ stalls); uv (what the project's install.js
+# uses) resolves in seconds. --system installs into the container's python.
+RUN pip install --no-cache-dir uv
+ENV UV_SYSTEM_PYTHON=1
+
 # Clone Kohya sd-scripts (sd3 branch) and install its deps. KEEP the directory.
 RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
-    cd sd-scripts && \
-    pip install --no-cache-dir -r ./requirements.txt
+    uv pip install --system --no-cache -r sd-scripts/requirements.txt
 
 # Install FluxGym app deps + the RunPod SDK.
 # The worker runs handler.py (gradio-free); gradio is only needed by the local
 # UI (app.py). We strip gradio/gradio_logsview here because gradio pins
-# tomlkit==0.12.0 which conflicts with runpod (tomlkit>=0.12.2) and triggers a
-# huge pip backtrack. Removing it resolves the conflict and speeds up the build.
+# tomlkit==0.12.0 which conflicts with runpod (tomlkit>=0.12.2).
 COPY ./requirements.txt ./requirements.txt
 COPY ./requirements-runpod.txt ./requirements-runpod.txt
 RUN grep -ivE '^(gradio_logsview|gradio)([<>=@ ]|$)' ./requirements.txt > ./requirements-worker.txt && \
-    pip install --no-cache-dir -r ./requirements-worker.txt && \
-    pip install --no-cache-dir -r ./requirements-runpod.txt
+    uv pip install --system --no-cache -r ./requirements-worker.txt && \
+    uv pip install --system --no-cache -r ./requirements-runpod.txt
 
-# Torch for CUDA 12.4.
-RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+# Torch for CUDA 12.4 (override any CPU torch pulled in above).
+RUN uv pip install --system --no-cache torch torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu124
 
 # Copy the FluxGym application code into the repo root, then move sd-scripts in
 # so it sits at /app/fluxgym/sd-scripts (where handler.py expects it).
