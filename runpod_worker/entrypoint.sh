@@ -19,4 +19,4 @@ else
     echo "[entrypoint] No /runpod-volume found; using local ./models (not persistent)"
 fi
 
-exec python3 -u runpod/handler.py
+exec python3 -u runpod_worker/handler.py

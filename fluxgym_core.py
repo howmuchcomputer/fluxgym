@@ -1,6 +1,6 @@
 """
 UI-free core helpers shared between the Gradio app (app.py) and the RunPod
-serverless worker (runpod/handler.py).
+serverless worker (runpod_worker/handler.py).
 
 app.py builds the entire Gradio Blocks at import time, so the serverless handler
 cannot import it. Everything here is pure logic (model registry, path helpers,

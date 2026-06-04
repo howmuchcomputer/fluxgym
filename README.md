@@ -84,11 +84,11 @@ FluxGym trains locally exactly as before.
    (your registry path), and `HF_TOKEN` + `HF_REPO_OWNER`.
 2. Build & push the worker image:
    ```
-   ./runpod/build_and_push.sh
+   ./runpod_worker/build_and_push.sh
    ```
 3. Provision the volume + template + endpoint:
    ```
-   python runpod/deploy.py
+   python runpod_worker/deploy.py
    ```
    Paste the printed `RUNPOD_ENDPOINT_ID` and `RUNPOD_NETWORK_VOLUME_ID` into `.env`.
    In the RunPod dashboard, raise the endpoint's **Execution Timeout** to cover
@@ -98,7 +98,7 @@ FluxGym trains locally exactly as before.
    and the LoRA lands in `https://huggingface.co/<owner>/<lora-name>`.
 
 The first job downloads ~30GB of base models to the volume and is slow; later
-jobs reuse the cache. See [`runpod/`](runpod/) for the handler, deploy, and
+jobs reuse the cache. See [`runpod_worker/`](runpod_worker/) for the handler, deploy, and
 build scripts, and [Dockerfile.runpod](Dockerfile.runpod) for the worker image.
 
 # How people are using Fluxgym

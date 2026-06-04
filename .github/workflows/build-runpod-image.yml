@@ -12,7 +12,7 @@ on:
       - Dockerfile.runpod
       - requirements.txt
       - requirements-runpod.txt
-      - runpod/**
+      - runpod_worker/**
       - fluxgym_core.py
       - .github/workflows/build-runpod-image.yml
 

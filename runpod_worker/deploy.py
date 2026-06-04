@@ -8,10 +8,10 @@ Steps:
   4. Print the endpoint id to paste back into .env as RUNPOD_ENDPOINT_ID.
 
 Prereqs:
-  - Build & push the image first:  ./runpod/build_and_push.sh
+  - Build & push the image first:  ./runpod_worker/build_and_push.sh
   - Fill in .env (copy from .env.example), at minimum RUNPOD_API_KEY + DOCKER_IMAGE.
 
-Run:  python runpod/deploy.py
+Run:  python runpod_worker/deploy.py
 """
 import os
 import sys
@@ -74,7 +74,8 @@ def main():
     runpod.api_key = env("RUNPOD_API_KEY", required=True)
     image = env("DOCKER_IMAGE", required=True)
     name = env("RUNPOD_NAME", "fluxgym-krea")
-    data_center_id = env("RUNPOD_DATA_CENTER_ID", "US-OR-1")
+    # Must be a data center with network-volume (storage) support.
+    data_center_id = env("RUNPOD_DATA_CENTER_ID", "US-KS-2")
     volume_size = env("RUNPOD_VOLUME_GB", "100")
     container_disk = int(env("RUNPOD_CONTAINER_DISK_GB", "30"))
     gpu_ids = env("RUNPOD_GPU_IDS", "AMPERE_48")  # 48GB Ampere pool (A40/A6000)
