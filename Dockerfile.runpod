@@ -19,8 +19,11 @@ RUN pip install --no-cache-dir uv
 ENV UV_SYSTEM_PYTHON=1
 
 # Clone Kohya sd-scripts (sd3 branch) and install its deps. KEEP the directory.
+# Must run from inside sd-scripts: its requirements.txt ends with '.' (install
+# the local package), which only resolves when that dir is the cwd.
 RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
-    uv pip install --system --no-cache -r sd-scripts/requirements.txt
+    cd sd-scripts && \
+    uv pip install --system --no-cache -r requirements.txt
 
 # Install FluxGym app deps + the RunPod SDK.
 # The worker runs handler.py (gradio-free); gradio is only needed by the local
