@@ -77,8 +77,9 @@ FluxGym trains locally exactly as before.
 
 **Setup:**
 
-0. The `runpod` SDK is in `requirements.txt` — if you're upgrading an existing
-   install, re-run `pip install -r requirements.txt` so it's available locally.
+0. Install the RunPod SDK locally (used by the UI's remote path and `deploy.py`):
+   `pip install runpod`. It's kept out of `requirements.txt` to avoid a
+   gradio/tomlkit version clash; installing it on top of an existing env is fine.
 1. `cp .env.example .env` and fill in `RUNPOD_API_KEY`, `DOCKER_IMAGE`
    (your registry path), and `HF_TOKEN` + `HF_REPO_OWNER`.
 2. Build & push the worker image:

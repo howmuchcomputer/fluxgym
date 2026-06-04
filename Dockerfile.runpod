@@ -18,9 +18,14 @@ RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
     pip install --no-cache-dir -r ./requirements.txt
 
 # Install FluxGym app deps + the RunPod SDK.
+# The worker runs handler.py (gradio-free); gradio is only needed by the local
+# UI (app.py). We strip gradio/gradio_logsview here because gradio pins
+# tomlkit==0.12.0 which conflicts with runpod (tomlkit>=0.12.2) and triggers a
+# huge pip backtrack. Removing it resolves the conflict and speeds up the build.
 COPY ./requirements.txt ./requirements.txt
 COPY ./requirements-runpod.txt ./requirements-runpod.txt
-RUN pip install --no-cache-dir -r ./requirements.txt && \
+RUN grep -ivE '^(gradio_logsview|gradio)([<>=@ ]|$)' ./requirements.txt > ./requirements-worker.txt && \
+    pip install --no-cache-dir -r ./requirements-worker.txt && \
     pip install --no-cache-dir -r ./requirements-runpod.txt
 
 # Torch for CUDA 12.4.
