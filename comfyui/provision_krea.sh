@@ -48,8 +48,8 @@ dl "$HF/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors" \
    "$COMFY/models/vae/ae.safetensors"
 
 # --- Your trained LoRA (private repo -> needs HF_TOKEN) ---
-LORA_REPO="${LORA_REPO:-dhurks/ohcpx-v1}"
-LORA_FILE="${LORA_FILE:-ohcpx-v1.safetensors}"
+LORA_REPO="${LORA_REPO:-dhurks/ohcpx-v2}"
+LORA_FILE="${LORA_FILE:-ohcpx-v2.safetensors}"
 if [ -n "${HF_TOKEN:-}" ]; then
   dl "$HF/${LORA_REPO}/resolve/main/${LORA_FILE}" \
      "$COMFY/models/loras/${LORA_FILE}" "Authorization: Bearer ${HF_TOKEN}"

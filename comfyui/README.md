@@ -31,8 +31,8 @@ https://raw.githubusercontent.com/howmuchcomputer/fluxgym/feat/krea-runpod-train
 4. **Environment variables:**
    - `PROVISIONING_SCRIPT` = the raw URL above
    - `HF_TOKEN` = your HuggingFace token (for the private LoRA repo)
-   - `LORA_REPO` = `dhurks/<your-lora>` (e.g. `dhurks/ohcpx-v1`)
-   - `LORA_FILE` = `<your-lora>.safetensors` (e.g. `ohcpx-v1.safetensors`)
+   - `LORA_REPO` = `dhurks/<your-lora>` (e.g. `dhurks/ohcpx-v2`)
+   - `LORA_FILE` = `<your-lora>.safetensors` (e.g. `ohcpx-v2.safetensors`)
 5. **Expose HTTP port `8188`** (ComfyUI).
 6. **Deploy.** First boot pulls the image + runs provisioning (~10–15 min). Watch
    the pod logs for `[provision] done.`
