@@ -54,8 +54,10 @@ dl "$HF/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetens
    "$COMFY/models/text_encoders/t5xxl_fp8_e4m3fn.safetensors"
 cp -n "$COMFY/models/text_encoders/"*.safetensors "$COMFY/models/clip/" 2>/dev/null || true
 
-# --- VAE (FLUX ae; schnell repo is public/apache-2.0) ---
-dl "$HF/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors" \
+# --- VAE (FLUX ae). NOTE: black-forest-labs repos are now GATED (401 without a
+# license-accepted token), so pull the byte-identical ae from the public
+# cocktailpeanut/xulf-dev repo (same file FluxGym uses for training). ---
+dl "$HF/cocktailpeanut/xulf-dev/resolve/main/ae.sft" \
    "$COMFY/models/vae/ae.safetensors"
 
 # --- Your trained LoRA (private repo -> needs HF_TOKEN via --location-trusted) ---

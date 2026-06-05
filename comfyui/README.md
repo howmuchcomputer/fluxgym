@@ -6,6 +6,12 @@ FLUX.1 Krea LoRA. Models are pulled from HuggingFace on startup by
 done and pay $0 while it's off** — just re-deploy next time (re-downloads ~18GB,
 a few minutes).
 
+> ⚠️ **Use a CURRENT ComfyUI (2025+).** FLUX.1 Krea (July 2025) ships as a
+> "scaled fp8" checkpoint; an older ComfyUI (e.g. the Sept-2024 build in
+> `ai-dock/comfyui:latest`) loads it without applying the scale tensors and
+> produces **pure noise**. Pick a template/image whose ComfyUI is recent, or have
+> the provisioning `git pull` ComfyUI to latest on startup.
+
 ## Cost model
 - **Storage: $0** if you terminate the pod between sessions (no network volume).
 - **GPU: only while running.** A 24GB card (RTX 4090) is plenty for fp8 Krea —
