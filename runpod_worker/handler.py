@@ -10,6 +10,7 @@ the client through the endpoint's /stream interface.
 """
 import os
 import sys
+import time
 import base64
 import io
 import zipfile
@@ -129,25 +130,50 @@ def handler(job):
     md = readme(base_model, lora_name, config_class_tokens, prompts)
     _write(os.path.join(output_dir, "README.md"), md)
 
+    # Sanity: confirm training actually produced a LoRA before we claim success.
+    produced = [os.path.join(r, f) for r, _, fs in os.walk(output_dir)
+                for f in fs if f.endswith(".safetensors")]
+    yield {"log": f"[worker] Output dir: {sorted(os.listdir(output_dir))}"}
+    if not produced:
+        yield {"error": f"No .safetensors produced in {output_dir} - training did not save a LoRA."}
+        return
+
     hf_repo = inp.get("hf_repo")
     hf_token = inp.get("hf_token") or os.environ.get("HF_TOKEN", "")
-    if hf_repo and hf_token:
-        yield {"log": f"[worker] Uploading LoRA to https://huggingface.co/{hf_repo} ..."}
-        args = Namespace(
-            huggingface_repo_id=hf_repo,
-            huggingface_repo_type="model",
-            huggingface_repo_visibility=inp.get("hf_visibility", "public"),
-            huggingface_path_in_repo="",
-            huggingface_token=hf_token,
-            async_upload=False,
-        )
+    # There is no network volume in this deployment, so HF is the ONLY sink for
+    # the LoRA. If we can't deliver it, FAIL loudly (don't silently 'complete').
+    if not (hf_repo and hf_token):
+        yield {"error": "No hf_repo/hf_token provided and no persistent volume - "
+                        "nowhere to deliver the LoRA. Set HF_REPO_OWNER + HF_TOKEN."}
+        return
+
+    # Robust upload, bypassing kohya's error-swallowing wrapper:
+    #  - disable hf_transfer (reliable for downloads, flaky for uploads)
+    #  - create repo, upload folder, then VERIFY the files actually landed
+    #  - retry, and raise (-> job FAILED) if it can't be confirmed.
+    os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
+    from huggingface_hub import HfApi
+    api = HfApi(token=hf_token)
+    private = inp.get("hf_visibility", "public") != "public"
+    last_err = None
+    for attempt in range(1, 4):
         try:
-            huggingface_util.upload(args=args, src=output_dir)
-            yield {"log": f"[worker] Upload complete: https://huggingface.co/{hf_repo}"}
+            yield {"log": f"[worker] Uploading to https://huggingface.co/{hf_repo} (attempt {attempt}/3)..."}
+            api.create_repo(repo_id=hf_repo, repo_type="model", private=private, exist_ok=True)
+            api.upload_folder(repo_id=hf_repo, repo_type="model", folder_path=output_dir)
+            repo_files = api.list_repo_files(repo_id=hf_repo, repo_type="model")
+            if any(f.endswith(".safetensors") for f in repo_files):
+                yield {"log": f"[worker] Upload VERIFIED: {len(repo_files)} files at https://huggingface.co/{hf_repo}"}
+                last_err = None
+                break
+            last_err = "upload returned but no .safetensors present in repo afterwards"
         except Exception as e:
-            yield {"log": f"[worker] HF upload failed: {e}. LoRA remains on the volume at {output_dir}"}
-    else:
-        yield {"log": f"[worker] No HF repo/token provided. LoRA saved on volume at {output_dir}"}
+            last_err = f"{type(e).__name__}: {e}"
+        yield {"log": f"[worker] upload attempt {attempt} problem: {last_err}"}
+        time.sleep(5)
+    if last_err:
+        yield {"error": f"HF upload failed after 3 attempts: {last_err}"}
+        return
 
     yield {"log": "[worker] Done."}
 
