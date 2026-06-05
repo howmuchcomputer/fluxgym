@@ -77,28 +77,51 @@ def submit_training(base_model, lora_name, train_script, train_config,
                "dataset on the network volume / S3 if the job is rejected.")
 
     job = endpoint.run(payload)
-    yield f"[RunPod] Job submitted: id={getattr(job, 'job_id', '?')}"
+    job_id = getattr(job, "job_id", None)
+    yield f"[RunPod] Job submitted: id={job_id}"
 
-    # Preferred path: stream incremental output from the generator handler.
-    try:
-        for output in job.stream():
-            for line in _extract_lines(output):
-                yield line
-        yield "[RunPod] Job complete."
-        return
-    except Exception as e:
-        yield f"[RunPod] Streaming unavailable ({e}); falling back to polling."
-
-    # Fallback: poll status, then dump final output.
+    # Drain /stream over HTTP directly. The SDK's job.stream() proved unreliable
+    # (it silently fell back to status polling), so we poll the REST /stream
+    # endpoint ourselves, which reliably returns the worker's yielded log lines.
+    import requests
+    api_key = os.environ["RUNPOD_API_KEY"]
+    base = f"https://api.runpod.ai/v2/{os.environ['RUNPOD_ENDPOINT_ID']}"
+    hdr = {"Authorization": f"Bearer {api_key}"}
     terminal = ("COMPLETED", "FAILED", "CANCELLED", "TIMED_OUT")
+    last = None
+    status = None
     while True:
-        status = job.status()
-        yield f"[RunPod] status={status}"
-        if status in terminal:
+        try:
+            r = requests.get(f"{base}/stream/{job_id}", headers=hdr, timeout=60)
+            if r.status_code == 404:
+                yield "[RunPod] stream closed."
+                break
+            data = r.json()
+        except Exception as e:
+            yield f"[RunPod] stream poll error: {e}"
+            time.sleep(3)
+            continue
+        status = data.get("status")
+        chunks = data.get("stream", [])
+        for item in chunks:
+            out = item.get("output", item)
+            for line in _extract_lines(out):
+                if line and line != last:   # collapse repeated progress lines
+                    last = line
+                    yield line
+        if status in terminal and not chunks:
             break
-        time.sleep(5)
-    for line in _extract_lines(job.output()):
-        yield line
+        if not chunks:
+            time.sleep(2)
+
+    # Final status / surfaced error.
+    try:
+        s = requests.get(f"{base}/status/{job_id}", headers=hdr, timeout=30).json()
+        if s.get("error"):
+            yield f"[RunPod] ERROR: {s.get('error')}"
+        yield f"[RunPod] Final status: {s.get('status', status)}"
+    except Exception:
+        yield f"[RunPod] Final status: {status}"
     yield "[RunPod] Job complete."
 
 
