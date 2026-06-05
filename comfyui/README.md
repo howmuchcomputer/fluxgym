@@ -29,6 +29,9 @@ https://raw.githubusercontent.com/howmuchcomputer/fluxgym/feat/krea-runpod-train
    `ghcr.io/ai-dock/comfyui:latest` (or pick a "ComfyUI (ai-dock)" template from
    the RunPod hub). This image supports the `PROVISIONING_SCRIPT` hook.
 4. **Environment variables:**
+   - `WEB_ENABLE_AUTH` = `false`  ← **required**, or ai-dock redirects ComfyUI to a
+     login portal and the URL errors. With it off, ComfyUI serves directly on 8188
+     (still behind RunPod's proxy auth, so only your account can reach it).
    - `PROVISIONING_SCRIPT` = the raw URL above
    - `HF_TOKEN` = your HuggingFace token (for the private LoRA repo)
    - `LORA_REPO` = `dhurks/<your-lora>` (e.g. `dhurks/ohcpx-v2`)
