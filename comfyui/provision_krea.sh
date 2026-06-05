@@ -34,10 +34,12 @@ dl() {  # dl <url> <dest> [bearer-token]
   echo "[provision] downloading $(basename "$dest") ..."
   # curl -L --location-trusted RE-SENDS the auth header across HF's CDN redirect
   # (wget drops it, which silently breaks private-repo downloads).
+  # --retry handles transient HF failures (one of these silently failed before).
+  local retry=(--retry 5 --retry-delay 5 --retry-connrefused -fL)
   if [ -n "$token" ]; then
-    curl -fL --location-trusted -H "Authorization: Bearer ${token}" -o "$dest" "$url"
+    curl "${retry[@]}" --location-trusted -H "Authorization: Bearer ${token}" -o "$dest" "$url"
   else
-    curl -fL -o "$dest" "$url"
+    curl "${retry[@]}" -o "$dest" "$url"
   fi
 }
 
