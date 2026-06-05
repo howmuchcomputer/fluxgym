@@ -15,10 +15,15 @@
 set -eu
 
 # Locate the ComfyUI install (ai-dock uses /workspace/ComfyUI).
-COMFY="${WORKSPACE:-/workspace}/ComfyUI"
-[ -d "$COMFY" ] || COMFY="/opt/ComfyUI"
-[ -d "$COMFY" ] || COMFY="/ComfyUI"
+COMFY=""
+for c in "/workspace/runpod-slim/ComfyUI" "${WORKSPACE:-/workspace}/ComfyUI" \
+         "/workspace/ComfyUI" "/opt/ComfyUI" "/ComfyUI"; do
+  [ -d "$c" ] && COMFY="$c" && break
+done
+# last resort: locate any ComfyUI install
+[ -z "$COMFY" ] && COMFY="$(dirname "$(find /workspace /opt / -maxdepth 4 -type d -name ComfyUI 2>/dev/null | head -1)/x")"
 echo "[provision] ComfyUI dir: $COMFY"
+[ -d "$COMFY" ] || { echo "[provision] ERROR: ComfyUI dir not found"; exit 1; }
 # Note: download text encoders into BOTH text_encoders/ and clip/ so DualCLIPLoader
 # finds them regardless of ComfyUI version (newer reads text_encoders, older clip).
 mkdir -p "$COMFY/models/diffusion_models" "$COMFY/models/text_encoders" \
